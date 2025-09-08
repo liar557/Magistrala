@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"liar/llm"
+	"llm/llm"
 )
 
 func testAnalyzeMessages() {

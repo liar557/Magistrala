@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io"
-	"liar/llm"
+	"llm/llm"
 	"net/http"
 )
 

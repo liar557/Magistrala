@@ -1,7 +1,7 @@
 package main
 
 import (
-	"liar/llm"
+	"llm/llm"
 	"log"
 	"net/http"
 )

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"liar/image_upload_server"
+	"image_upload/image_upload_server"
 	"path/filepath"
 )
 
