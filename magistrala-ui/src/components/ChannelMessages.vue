@@ -21,11 +21,12 @@
           <th>Name</th>
           <th>Unit</th>
           <th>内容</th>
+          <th>分区</th>
           <th>时间</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(msg, idx) in messages" :key="msg.id">
+        <tr v-for="(msg, idx) in enrichedMessages" :key="msg.id">
           <td>
             <input type="checkbox" v-model="selected[idx]" />
           </td>
@@ -46,6 +47,7 @@
             <span v-else-if="msg.value !== undefined">{{ msg.value }}</span>
             <span v-else>{{ msg.string_value }}</span>
           </td>
+          <td>{{ msg.partition_name || msg.partition_id || '-' }}</td> <!-- 展示分区名或ID -->
           <td>{{ formatTime(msg.sent_at) }}</td>
         </tr>
       </tbody>
@@ -98,7 +100,7 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 const domainId = route.params.id
 const channelId = route.params.channelId
-const userToken = localStorage.getItem('usertoken')
+const userToken = localStorage.getItem('token')
 const analyzeApi = 'http://localhost:8091/analyze'
 
 const messages = ref([])
@@ -116,6 +118,31 @@ const analyzeResult = ref(null)
 const imgModalVisible = ref(false)
 const imgModalSrc = ref('')
 
+// 新增：保存 channel 下所有 client 信息
+const clients = ref([])
+
+// 构建 clientId 到 client 的映射
+const clientMap = computed(() => {
+  const map = {}
+  clients.value.forEach(c => { map[c.id] = c })
+  return map
+})
+
+// 展示时将分区信息合并到 message
+const enrichedMessages = computed(() =>
+  messages.value.map(msg => {
+    const client = clientMap.value[msg.publisher]
+    
+    return {
+      ...msg,
+      partition_id: client?.metadata?.partition_id || '',
+      partition_name: client?.metadata?.partition_name || '',
+      deviceType: client?.tags?.[0] || '',
+      client_name: client?.name || ''
+    }
+  })
+)
+
 function isImage(url) {
   return url && /^https?:\/\/.+\.(png|jpg|jpeg|gif|bmp)$/i.test(url)
 }
@@ -123,6 +150,24 @@ function isImage(url) {
 function showImg(src) {
   imgModalSrc.value = src
   imgModalVisible.value = true
+}
+
+/**
+ * 获取当前 channel 下已 connect 的 client 列表
+ */
+async function fetchClients() {
+  const res = await fetch(
+    `/Clients/${domainId}/clients?channel=${channelId}`,
+    {
+      headers: { 'Authorization': `Bearer ${userToken}` }
+    }
+  )
+  if (res.ok) {
+    const data = await res.json()
+    clients.value = data.clients || []
+  } else {
+    clients.value = []
+  }
 }
 
 async function fetchMessages() {
@@ -147,42 +192,32 @@ async function fetchMessages() {
   loading.value = false
 }
 
-onMounted(() => {
-  fetchMessages()
+onMounted(async () => {
+  await fetchClients()
+  await fetchMessages()
 })
 watch([page, rowsPerPage, search], fetchMessages)
 
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(total.value / rowsPerPage.value))
-)
-
-function prevPage() {
-  if (page.value > 1) page.value--
-}
-function nextPage() {
-  if (page.value < totalPages.value) page.value++
-}
-
-// 智能分析相关
+/**
+ * 智能分析相关
+ */
 function openAnalyze() {
   analyzeVisible.value = true
   analyzeLoading.value = true
   analyzeResult.value = null
 
-  // 收集选中的消息
-  const selectedMessages = messages.value
+  // 收集选中的消息，合并分区信息
+  const selectedMessages = enrichedMessages.value
     .map((msg, idx) => selected.value[idx] ? msg : null)
     .filter(Boolean)
-    .map(msg => {
-      // 只保留 name、unit、value、string_value 字段
-      let obj = {
-        name: msg.name,
-        unit: msg.unit
-      }
-      if (msg.value !== undefined) obj.value = msg.value
-      if (msg.string_value) obj.string_value = msg.string_value
-      return obj
-    })
+    .map(msg => ({
+      name: msg.name,
+      unit: msg.unit,
+      partition_name: msg.partition_name || '',
+      partition_id: msg.partition_id || '',
+      value: msg.value,
+      string_value: msg.string_value
+    }))
 
   if (selectedMessages.length === 0) {
     analyzeLoading.value = false
@@ -204,6 +239,17 @@ function openAnalyze() {
       analyzeResult.value = null
       analyzeLoading.value = false
     })
+}
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(total.value / rowsPerPage.value))
+)
+
+function prevPage() {
+  if (page.value > 1) page.value--
+}
+function nextPage() {
+  if (page.value < totalPages.value) page.value++
 }
 
 function formatTime(ts) {

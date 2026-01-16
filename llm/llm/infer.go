@@ -1,42 +1,35 @@
 package llm
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
-// AnalyzeMessages 是智慧农业 LLM 推理分析的主流程函数。
-// 它负责：
-// 1. 构建 prompt（调用 BuildPrompt）。
-// 2. 调用大模型客户端推理（client.Infer）。
-// 3. 剔除 <think> 标签内容（RemoveThinkSection）。
-// 4. 去除首尾空白（TrimSpaceAll）。
-// 5. 解析为结构体（JSONToStruct）。
-// 返回结构化分析结果，供前端或业务代码直接使用。
-func AnalyzeMessages(client LLMClient, messages []map[string]interface{}) (AnalysisResult, error) {
-	// 1. 构建 Ollama 多模态消息体
-	content, err := BuildOllamaMessages(messages)
+// AnalyzeRegionCommands 让模型直接输出“区域级指令”JSON（字符串返回），供上层编排器解析为 RegionCommand。
+func AnalyzeRegionCommands(client LLMClient, messages []map[string]interface{}) (string, error) {
+	return AnalyzeRegionCommandsWithPrompt(client, messages, "")
+}
+
+// AnalyzeRegionCommandsWithPrompt 允许自定义提示词（非空时覆盖默认提示）。
+func AnalyzeRegionCommandsWithPrompt(client LLMClient, messages []map[string]interface{}, prompt string) (string, error) {
+	// 1. 构建 区域级命令 提示（可自定义提示词）
+	content, err := BuildOllamaMessagesForRegionCommandsWithPrompt(messages, prompt)
 	if err != nil {
-		return AnalysisResult{}, err
+		return "", err
 	}
-
-	// 2. 调用大模型客户端推理（假设 InferMultimodal 是多模态推理接口）
+	// 2. 模型推理
 	result, err := client.InferMultimodal(content)
 	if err != nil {
-		return AnalysisResult{}, err
+		return "", err
 	}
-
-	// fmt.Println("大模型原始输出：", result)
-
-	// 3. 剔除 <think> 标签内容
+	log.Printf("[Infer] llm raw output=%s", result)
+	// 3. 清洗
 	cleaned := RemoveThinkSection(result)
-
-	// 4. 去除首尾空白
 	cleaned = TrimSpaceAll(cleaned)
-
-	// 5. 提取 JSON 子串
+	// 4. 仅返回 JSON 子串
 	jsonStr := ExtractJSON(cleaned)
 	if jsonStr == "" {
-		return AnalysisResult{}, fmt.Errorf("未检测到有效JSON，请检查大模型输出")
+		return "", fmt.Errorf("未检测到有效JSON，请检查大模型输出")
 	}
-
-	// 6. 解析为结构体
-	return JSONToStruct(jsonStr)
+	return result, nil
 }

@@ -8,6 +8,12 @@ import ChannelLayout from '../components/ChannelLayout.vue'
 import ChannelDetail from '../components/ChannelDetail.vue'
 import ChannelMessages from '../components/ChannelMessages.vue'
 import ChannelChart from '../components/ChannelChart.vue'
+import Clients from '../components/Clients.vue'
+import ClientLayout from '../components/ClientLayout.vue'
+import ClientDetail from '../components/ClientDetail.vue'
+import ChannelTopology from '../components/ChannelTopology.vue'
+import ChannelConnections from '../components/ChannelConnections.vue'
+import AgriIntegration from '../components/AgriIntegration.vue'
 
 const routes = [
   { path: '/login', component: Login }, 
@@ -23,10 +29,21 @@ const routes = [
         component: ChannelLayout,
         children: [
           { path: '', component: ChannelDetail },
+          { path: 'connections', component: ChannelConnections },
           { path: 'messages', component: ChannelMessages },
-          { path: 'chart', component: ChannelChart }
+          { path: 'chart', component: ChannelChart },
+          { path: 'topology', component: ChannelTopology }
         ]
-      }
+      },
+      { path: 'clients', component: Clients },
+      {
+        path: 'clients/:clientId',
+        component: ClientLayout,
+        children: [
+          { path: '', component: ClientDetail },
+        ]
+      },
+      { path: 'agri-integration', component: AgriIntegration }
     ]
   },
   { path: '/', redirect: '/login' }

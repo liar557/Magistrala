@@ -19,6 +19,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/Users': {
+        target: 'http://localhost:80',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/Users/, '/users'),
+      },
       '/Domains': {
         target: 'http://localhost:9003',
         changeOrigin: true,
@@ -29,15 +34,20 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: path => path.replace(/^\/Channels/, ''),
       },
-      '/Users': {
-        target: 'http://localhost:80', // 后端实际端口
+      '/Clients': {
+        target: 'http://localhost:9006',
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/Users/, '/users'),
+        rewrite: path => path.replace(/^\/Clients/, ''),
       },
       '/Messages': {
         target: 'http://localhost:9011',
         changeOrigin: true,
         rewrite: path => path.replace(/^\/Messages/, ''),
+      },
+      '/image-upload': {
+        target: 'http://localhost:18080',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/image-upload/, ''),
       }
     }
   }

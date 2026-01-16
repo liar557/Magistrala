@@ -1,0 +1,46 @@
+{
+    "domains": [
+        {
+            "domainId": "afd4c584-5288-46f6-8144-a1bd5f52f65f",
+            "channels": [
+                {
+                    "channelId": "7ea3cf07-43e8-4fa3-a3a0-61f24ac6df2f",
+                    "partitions": [
+                        {
+                            "partitionId": "field-A",
+                            "partitionName": "A区",
+                            "sensors": [
+                                "f484a73d-5f1b-4c52-b826-a1a5928749e3",
+                                "7224a0b1-c331-4bc1-b455-05dcd7ee9272",
+                                "5dd1a3e4-6a1e-4712-a5e1-800a820c9fd6",
+                                "12411e95-b5d2-48a5-a651-2049e3ad441b",
+                                "9715b3cd-ba24-4239-bbcd-a386e7b3dcb8",
+                                "e5f34102-6d17-4ecd-b57f-7d07e9389e34",
+                                "75b22e37-ea0b-4a6f-8bb0-47e02c688975",
+                                "fb0233a2-46f3-493a-bc1a-42a7372c9379",
+                                "5bbe0475-6208-4f11-9f48-127db4e6757a"
+                            ],
+                            "executors": [
+                                "4d7ccc71-d8bb-4faf-ac7c-e752a62efb73"
+                            ]
+                        },
+                        {
+                            "partitionId": "field-B",
+                            "partitionName": "B区",
+                            "sensors": [],
+                            "executors": [
+                                "be1b37db-2ef4-4ee5-b147-80e88d605b57",
+                                "31a01938-65c1-45f6-88ba-71d0d9b355c4",
+                                "13b3e17d-9e42-4db6-80ee-6da3b2e7d289",
+                                "ce93e111-a844-4928-82e6-7e343c95ad80",
+                                "a39c6fba-0736-463f-a295-41f4ccc57438",
+                                "97436600-5278-4c9b-97b9-09a5dd2c6de8",
+                                "df00f994-4922-4675-94cd-841acc7d3060"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

@@ -1,15 +1,16 @@
+<!-- filepath: /home/liar/Magistrala/magistrala-ui/src/components/ClientLayout.vue -->
 <template>
-  <div class="channel-layout">
-    <div class="channel-menu-area">
-      <ChannelMenu
-        :name="channel.name"
-        :id="channel.id"
+  <div class="client-layout">
+    <div class="client-menu-area">
+      <ClientMenu
+        :name="client.name"
+        :id="client.id"
         :menu="menuList"
         :active="activeMenu"
         @menu-click="handleMenuClick"
       />
     </div>
-    <div class="channel-content-area">
+    <div class="client-content-area">
       <router-view />
     </div>
   </div>
@@ -18,61 +19,58 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ChannelMenu from './ChannelMenu.vue'
+import ClientMenu from './ClientMenu.vue'
 
 const route = useRoute()
 const router = useRouter()
 const domainId = route.params.id
-const channelId = route.params.channelId
+const clientId = route.params.clientId
 const userToken = localStorage.getItem('token')
 
-const channel = ref({
+const client = ref({
   name: '',
   id: '',
 })
 
 const menuList = [
-  { key: 'settings', label: 'Settings' },
+  { key: 'configurations', label: 'Configurations' },
   { key: 'connections', label: 'Connections' },
   { key: 'roles', label: 'Roles' },
   { key: 'members', label: 'Members' },
-  { key: 'messages', label: 'Messages' },
-  { key: 'chart', label: '图表展示' },
-  { key: 'topology', label: '物理拓扑' },
   { key: 'audit', label: 'Audit Logs' }
 ]
 
-const activeMenu = ref('settings')
+const activeMenu = ref('configurations')
 
 watch(
   () => route.path,
   (newPath) => {
     const matched = menuList.find(item =>
-      newPath.endsWith(item.key) || (item.key === 'settings' && newPath === `/domain/${domainId}/channels/${channelId}`)
+      newPath.endsWith(item.key) || (item.key === 'configurations' && newPath === `/domain/${domainId}/clients/${clientId}`)
     )
-    activeMenu.value = matched ? matched.key : 'settings'
+    activeMenu.value = matched ? matched.key : 'configurations'
   },
   { immediate: true }
 )
 
 function handleMenuClick(key) {
   activeMenu.value = key
-  if (key === 'settings') {
-    router.push(`/domain/${domainId}/channels/${channelId}`)
+  if (key === 'configurations') {
+    router.push(`/domain/${domainId}/clients/${clientId}`)
   } else {
-    router.push(`/domain/${domainId}/channels/${channelId}/${key}`)
+    router.push(`/domain/${domainId}/clients/${clientId}/${key}`)
   }
 }
 
 onMounted(async () => {
-  const res = await fetch(`/Channels/${domainId}/channels/${channelId}`, {
+  const res = await fetch(`/Clients/${domainId}/clients/${clientId}`, {
     headers: {
       'Authorization': `Bearer ${userToken}`
     }
   })
   if (res.ok) {
     const data = await res.json()
-    channel.value = {
+    client.value = {
       name: data.name || '',
       id: data.id || '',
     }
@@ -81,17 +79,17 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.channel-layout {
+.client-layout {
   display: flex;
   width: 100%;
   min-height: 100%;
 }
-.channel-menu-area {
+.client-menu-area {
   flex: 0 0 20%;
   max-width: 20%;
   min-width: 200px;
 }
-.channel-content-area {
+.client-content-area {
   flex: 1;
   background: #fff;
   padding: 32px 32px 24px 32px;

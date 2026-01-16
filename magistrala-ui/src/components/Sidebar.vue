@@ -68,6 +68,12 @@
           class="menu-item"
           :class="{ active: isActive(`/domain/${domainId}/reports`) }"
         >Reports</router-link>
+        <div class="menu-section">Smart Agriculture</div>
+        <router-link
+          :to="`/domain/${domainId}/agri-integration`"
+          class="menu-item"
+          :class="{ active: isActive(`/domain/${domainId}/agri-integration`) }"
+        >🌾 农业数据集成</router-link>
       </nav>
     </div>
     <div class="sidebar-support">Support</div>

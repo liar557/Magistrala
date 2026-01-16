@@ -1,0 +1,12 @@
+{
+  "agriPlatform": {
+    "baseUrl": "http://api.farm.0531yun.cn",
+    "username": "cq251105mag",
+    "password": "cq251105mag",
+    "userToken": "824991767885253505"
+  },
+  "magistrala": {
+    "domainId": "afd4c584-5288-46f6-8144-a1bd5f52f65f",
+    "channelId": "7ea3cf07-43e8-4fa3-a3a0-61f24ac6df2f"
+  }
+}
