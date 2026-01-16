@@ -12,8 +12,8 @@ func AnalyzeRegionCommands(client LLMClient, messages []map[string]interface{}) 
 
 // AnalyzeRegionCommandsWithPrompt 允许自定义提示词（非空时覆盖默认提示）。
 func AnalyzeRegionCommandsWithPrompt(client LLMClient, messages []map[string]interface{}, prompt string) (string, error) {
-	// 1. 构建 区域级命令 提示（可自定义提示词）
-	content, err := BuildOllamaMessagesForRegionCommandsWithPrompt(messages, prompt)
+	// 1. 构建区域级命令提示（需外部提供 prompt）
+	content, err := BuildOllamaMessagesWithPrompt(messages, prompt, MultimodalOptions{IncludePartition: true})
 	if err != nil {
 		return "", err
 	}
@@ -31,5 +31,5 @@ func AnalyzeRegionCommandsWithPrompt(client LLMClient, messages []map[string]int
 	if jsonStr == "" {
 		return "", fmt.Errorf("未检测到有效JSON，请检查大模型输出")
 	}
-	return result, nil
+	return jsonStr, nil
 }

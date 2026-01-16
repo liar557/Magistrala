@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type result struct {
@@ -230,7 +231,7 @@ func NewControlAdapterFromConfig() (*core.ControlAdapter, error) {
 		return nil, fmt.Errorf("controlService.baseUrl 未配置")
 	}
 
-	// 读取共享 baseUrl/userToken（必须存在）；这里不依赖 messagePort。
+	// 读取共享 baseURL/userToken（必须存在）；这里不依赖 messagePort。
 	type sharedMagCfg struct {
 		BaseURL   string `json:"baseUrl"`
 		UserToken string `json:"userToken"`
@@ -265,33 +266,30 @@ func NewControlAdapterFromConfig() (*core.ControlAdapter, error) {
 		return nil, fmt.Errorf("共享配置 data/magistrala.json 缺失 baseUrl/userToken")
 	}
 
-	adapter := &core.ControlAdapter{
-		BaseURL:     sm.BaseURL,
-		MessagePort: raw.Magistrala.MessagePort,
-		DomainID:    "", // 运行时传入
-		ChannelID:   "", // 运行时传入
-		Token:       sm.UserToken,
-		MappingPath: raw.Mapping.Path,
-		ControlBase: raw.ControlService.BaseURL,
-		// Infer 在下方根据 LLMClient 设置
-	}
-
-	var promptText string
+	promptSection := ""
 	if raw.Prompt.Path != "" {
-		if pb, err := os.ReadFile(filepath.Clean(raw.Prompt.Path)); err == nil {
-			promptText = string(pb)
+		pb, err := os.ReadFile(raw.Prompt.Path)
+		if err != nil {
+			return nil, fmt.Errorf("读取 prompt 失败: %w", err)
+		}
+		promptSection, err = extractPromptSection(string(pb), "region_commands")
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	// 构建 LLM 客户端（默认 Ollama）
-	if raw.LLM.Endpoint == "" {
-		raw.LLM.Endpoint = "http://localhost:11434"
-	}
-	if raw.LLM.Model == "" {
-		raw.LLM.Model = "qwen2.5:latest"
-	}
+	// 构造客户端与适配器
 	client := &llm.OllamaClient{Endpoint: raw.LLM.Endpoint, Model: raw.LLM.Model}
-	adapter.Infer = makeInferWithPrompt(client, promptText)
+	adapter := &core.ControlAdapter{
+		BaseURL:     sm.BaseURL,
+		MessagePort: raw.Magistrala.MessagePort,
+		DomainID:    "",
+		ChannelID:   "",
+		Token:       sm.UserToken,
+		MappingPath: raw.Mapping.Path,
+		ControlBase: raw.ControlService.BaseURL,
+	}
+	adapter.Infer = makeInferWithPrompt(client, promptSection)
 	return adapter, nil
 }
 
@@ -342,4 +340,22 @@ func PlanAndSendToControlHandler(w http.ResponseWriter, r *http.Request, baseAda
 func mustJSON(v any) json.RawMessage {
 	b, _ := json.Marshal(v)
 	return b
+}
+
+// 选取指定标题（如 "region_commands"）下的 prompt 内容
+func extractPromptSection(md, key string) (string, error) {
+	h := "## " + key
+	idx := strings.Index(md, h)
+	if idx == -1 {
+		return "", fmt.Errorf("prompt section %s 未找到", key)
+	}
+	part := md[idx+len(h):]
+	if j := strings.Index(part, "\n## "); j != -1 {
+		part = part[:j]
+	}
+	part = strings.TrimSpace(part)
+	if part == "" {
+		return "", fmt.Errorf("prompt section %s 为空", key)
+	}
+	return part, nil
 }
