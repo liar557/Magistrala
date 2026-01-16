@@ -25,27 +25,32 @@ go build -o agri-integration
 ./agri-integration
 ```
 
-首次运行会创建默认配置文件 `config.json`，请编辑配置文件填写正确信息后重新运行。
+请先创建并编辑配置文件 `config.json`，填写正确信息后运行。
 
 ### 3. 配置文件示例
 ```json
 {
   "agriPlatform": {
     "baseUrl": "http://www.0531yun.com",
-    "username": "your_username", 
+    "username": "your_username",
     "password": "your_password"
   },
   "magistrala": {
-    "baseUrl": "http://localhost:9002",
-    "userToken": "your_magistrala_user_token",
-    "domainId": "your_domain_id", 
-    "channelId": "your_channel_id"
+    "domainId": "your_domain_id",
+    "channelId": "your_channel_id",
+    "channelPort": "9005",
+    "clientPort": "9006",
+    "messagePort": "9011"
   },
   "integration": {
     "syncInterval": 30,
     "mappingFile": "sensor_mapping.json",
     "backgroundImage": "farm_layout.jpg",
     "defaultPartition": "field_1"
+  },
+  "server": {
+    "port": "8889",
+    "host": "0.0.0.0"
   }
 }
 ```

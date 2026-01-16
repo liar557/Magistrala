@@ -2,8 +2,10 @@ package agridataintegration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
 )
@@ -68,9 +70,34 @@ func NewIntegrationService(config *Config) (*IntegrationService, error) {
 	}
 	log.Printf("   ✅ 农业平台登录成功，令牌: %s...", token[:20])
 
-	// 3. 创建 Magistrala IoT 平台客户端
-	magistralaClient := NewMagistralaClient(config.Magistrala.BaseURL, config.Magistrala.UserToken)
-	log.Printf("   ✅ Magistrala客户端已创建")
+	// 3. 从共享配置读取 baseUrl/userToken，创建 Magistrala IoT 平台客户端
+	type sharedMagCfg struct {
+		BaseURL   string `json:"baseUrl"`
+		UserToken string `json:"userToken"`
+	}
+	tryLoadSharedMag := func() *sharedMagCfg {
+		candidates := []string{
+			"data/magistrala.json",
+			"../data/magistrala.json",
+			"../../data/magistrala.json",
+		}
+		for _, p := range candidates {
+			if b, err := os.ReadFile(p); err == nil {
+				var out sharedMagCfg
+				if json.Unmarshal(b, &out) == nil {
+					return &out
+				}
+			}
+		}
+		return nil
+	}
+	sm := tryLoadSharedMag()
+	if sm == nil || sm.BaseURL == "" || sm.UserToken == "" {
+		return nil, fmt.Errorf("共享配置缺失 baseUrl/userToken，请编辑 data/magistrala.json")
+	}
+
+	magistralaClient := NewMagistralaClient(sm.BaseURL, sm.UserToken, config.Magistrala.ChannelPort, config.Magistrala.ClientPort, config.Magistrala.MessagePort)
+	log.Printf("   ✅ Magistrala客户端已创建: %s (messagePort=%s, channelPort=%s, clientPort=%s)", sm.BaseURL, config.Magistrala.MessagePort, config.Magistrala.ChannelPort, config.Magistrala.ClientPort)
 
 	// 4. 创建传感器映射管理器
 	mappingManager := NewMappingManager(config.Integration.MappingFile)

@@ -5,10 +5,11 @@
     "password": "h250909magi"
   },
   "magistrala": {
-    "baseUrl": "http://localhost:9006",
-    "userToken": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjAwODE3NDcsImlhdCI6MTc2MDA3ODE0NywiaXNzIjoic3VwZXJtcS5hdXRoIiwicm9sZSI6MSwic3ViIjoiZDRmMGM5NmEtZTA1Mi00ODAxLTkxNjYtM2RlMDUzMjBhOGNiIiwidHlwZSI6MCwidmVyaWZpZWQiOmZhbHNlfQ.KVo57ml86R8-DTiuOLK15LWZcEMbD75mlC9c_DsrZ8msutRwov5Bb0eObdsTQeESBfLILJaFRB6zy1SIm1JsUA",
     "domainId": "afd4c584-5288-46f6-8144-a1bd5f52f65f",
-    "channelId": "7ea3cf07-43e8-4fa3-a3a0-61f24ac6df2f"
+    "channelId": "7ea3cf07-43e8-4fa3-a3a0-61f24ac6df2f",
+    "channelPort": "9005",
+    "clientPort": "9006",
+    "messagePort": "9011"
   },
   "integration": {
     "syncInterval": 30,

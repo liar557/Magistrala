@@ -16,10 +16,12 @@ type Config struct {
 
 	// Magistrala 平台配置
 	Magistrala struct {
-		BaseURL   string `json:"baseUrl"`
-		UserToken string `json:"userToken"`
-		DomainID  string `json:"domainId"`
-		ChannelID string `json:"channelId"`
+		// baseUrl 和 userToken 从共享配置 data/magistrala.json 读取
+		ChannelPort string `json:"channelPort"`
+		ClientPort  string `json:"clientPort"`
+		MessagePort string `json:"messagePort"`
+		DomainID    string `json:"domainId"`
+		ChannelID   string `json:"channelId"`
 	} `json:"magistrala"`
 
 	// 集成配置
@@ -60,48 +62,4 @@ func (c *Config) SaveConfig(configPath string) error {
 	}
 
 	return os.WriteFile(configPath, data, 0644)
-}
-
-// DefaultConfig 返回默认配置
-func DefaultConfig() *Config {
-	return &Config{
-		AgriPlatform: struct {
-			BaseURL  string `json:"baseUrl"`
-			Username string `json:"username"`
-			Password string `json:"password"`
-		}{
-			BaseURL:  "http://www.0531yun.com",
-			Username: "",
-			Password: "",
-		},
-		Magistrala: struct {
-			BaseURL   string `json:"baseUrl"`
-			UserToken string `json:"userToken"`
-			DomainID  string `json:"domainId"`
-			ChannelID string `json:"channelId"`
-		}{
-			BaseURL:   "http://localhost:9002",
-			UserToken: "",
-			DomainID:  "",
-			ChannelID: "",
-		},
-		Integration: struct {
-			SyncInterval     int    `json:"syncInterval"`
-			MappingFile      string `json:"mappingFile"`
-			BackgroundImage  string `json:"backgroundImage"`
-			DefaultPartition string `json:"defaultPartition"`
-		}{
-			SyncInterval:     30, // 30秒同步一次
-			MappingFile:      "sensor_mapping.json",
-			BackgroundImage:  "farm_layout.jpg",
-			DefaultPartition: "field_1",
-		},
-		Server: struct {
-			Port string `json:"port"`
-			Host string `json:"host"`
-		}{
-			Port: "8888",
-			Host: "0.0.0.0",
-		},
-	}
 }

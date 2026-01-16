@@ -1,5 +1,0 @@
-curl -v -X POST \
-  -H "Content-Type: application/senml+json" \
-  -H "Authorization: Client secret-40366226-1-1" \
-  http://localhost/http/m/afd4c584-5288-46f6-8144-a1bd5f52f65f/c/7ea3cf07-43e8-4fa3-a3a0-61f24ac6df2f/light \
-  -d '[{"bn":"sensor-40366226-1-1:","bu":"级","t":0,"u":"级","v":0}]'

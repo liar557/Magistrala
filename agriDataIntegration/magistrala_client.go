@@ -17,12 +17,13 @@ import (
 // MagistralaClient Magistrala 平台客户端
 // 用于与 Magistrala IoT 平台进行交互，包括客户端管理、频道连接和消息发送
 type MagistralaClient struct {
-	BaseURL   string // Magistrala 服务器基础URL
+	BaseURL   string // Magistrala 服务器基础URL（不含端口）
 	UserToken string // 用户认证令牌
 
 	// 不同服务的端口配置
 	ChannelPort string // 频道服务端口 (默认: 9005)
 	ClientPort  string // 客户端服务端口 (默认: 9006)
+	MessagePort string // 消息服务端口 (例如: "9011")
 }
 
 // ClientRequest 客户端创建请求结构
@@ -89,12 +90,13 @@ type MessagePayload struct {
 //   - userToken: 用户认证令牌
 //
 // 返回: MagistralaClient 实例指针
-func NewMagistralaClient(baseURL, userToken string) *MagistralaClient {
+func NewMagistralaClient(baseURL, userToken string, channelPort, clientPort string, messagePort string) *MagistralaClient {
 	return &MagistralaClient{
 		BaseURL:     baseURL,
 		UserToken:   userToken,
-		ChannelPort: "9005", // 频道服务默认端口
-		ClientPort:  "9006", // 客户端服务默认端口
+		ChannelPort: channelPort,
+		ClientPort:  clientPort,
+		MessagePort: messagePort,
 	}
 }
 
@@ -111,7 +113,7 @@ func NewMagistralaClient(baseURL, userToken string) *MagistralaClient {
 // 返回: 频道元数据映射和错误信息
 func (c *MagistralaClient) GetChannelMetadata(domainID, channelID string) (map[string]interface{}, error) {
 	// 构造请求URL
-	url := fmt.Sprintf("http://localhost:%s/%s/channels/%s", c.ChannelPort, domainID, channelID)
+	url := fmt.Sprintf("%s:%s/%s/channels/%s", c.BaseURL, c.ChannelPort, domainID, channelID)
 
 	// 创建HTTP请求
 	req, err := http.NewRequest("GET", url, nil)
@@ -157,7 +159,7 @@ func (c *MagistralaClient) GetChannelMetadata(domainID, channelID string) (map[s
 // 返回: 创建的客户端信息和错误
 func (c *MagistralaClient) CreateClient(domainID string, req *ClientRequest) (*ClientResponse, error) {
 	// 构造请求URL
-	url := fmt.Sprintf("http://localhost:%s/%s/clients", c.ClientPort, domainID)
+	url := fmt.Sprintf("%s:%s/%s/clients", c.BaseURL, c.ClientPort, domainID)
 
 	// 序列化请求体
 	jsonData, err := json.Marshal(req)
@@ -207,7 +209,7 @@ func (c *MagistralaClient) CreateClient(domainID string, req *ClientRequest) (*C
 // 返回: 错误信息
 func (c *MagistralaClient) ConnectToChannel(domainID, clientID, channelID string) error {
 	// 构造连接API URL
-	url := fmt.Sprintf("http://localhost:%s/%s/channels/connect", c.ChannelPort, domainID)
+	url := fmt.Sprintf("%s:%s/%s/channels/connect", c.BaseURL, c.ChannelPort, domainID)
 
 	// 构造连接请求体
 	connectReq := map[string]interface{}{
@@ -264,7 +266,7 @@ func (c *MagistralaClient) ConnectToChannel(domainID, clientID, channelID string
 func (c *MagistralaClient) SendMessage(domainID, channelID, clientSecret string, payload *MessagePayload) error {
 	// 配置子主题（固定为light用于测试）
 	subtopic := "light"
-	url := fmt.Sprintf("http://localhost/http/m/%s/c/%s/%s", domainID, channelID, subtopic)
+	url := fmt.Sprintf("%s:%s/http/m/%s/c/%s/%s", c.BaseURL, c.MessagePort, domainID, channelID, subtopic)
 
 	// 输出调试信息
 	fmt.Printf("🔍 发送消息调试信息:\n")

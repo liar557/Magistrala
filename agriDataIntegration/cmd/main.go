@@ -18,20 +18,10 @@ func main() {
 		configPath = os.Args[1]
 	}
 
-	// 加载配置
+	// 加载配置（若不存在则直接报错退出）
 	config, err := agridataintegration.LoadConfig(configPath)
 	if err != nil {
-		// 如果配置文件不存在，创建默认配置
-		if os.IsNotExist(err) {
-			log.Printf("Config file not found, creating default config: %s", configPath)
-			config = agridataintegration.DefaultConfig()
-			if err := config.SaveConfig(configPath); err != nil {
-				log.Fatalf("Failed to save default config: %v", err)
-			}
-			log.Printf("Default config created. Please edit %s and restart the service.", configPath)
-			return
-		}
-		log.Fatalf("Failed to load config: %v", err)
+		log.Fatalf("Failed to load config %s: %v", configPath, err)
 	}
 
 	// 创建集成服务
