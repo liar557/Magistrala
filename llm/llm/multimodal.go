@@ -8,23 +8,17 @@ import (
 	"strings"
 )
 
-// MultimodalOptions 控制是否附带分区/执行目标信息。
-type MultimodalOptions struct {
-	IncludePartition bool
-	IncludeClient    bool
-}
-
 // BuildOllamaMessagesWithPrompt 唯一入口：传入提示词与消息，拼成多模态输入。
-// 提示词需外部从 MD/TXT 读取；opts 控制是否带分区/设备信息。
-func BuildOllamaMessagesWithPrompt(messages []map[string]interface{}, prompt string, opts MultimodalOptions) ([]map[string]interface{}, error) {
+// 提示词需外部从 MD/TXT 读取。
+func BuildOllamaMessagesWithPrompt(messages []map[string]interface{}, prompt string) ([]map[string]interface{}, error) {
 	if strings.TrimSpace(prompt) == "" {
 		return nil, fmt.Errorf("prompt 为空，请先从 MD/TXT 读取提示词后再调用")
 	}
-	return BuildMultimodalContent(prompt, messages, opts)
+	return BuildMultimodalContent(prompt, messages)
 }
 
 // BuildMultimodalContent 将提示词与传感器/媒体消息拼接成 Ollama 多模态输入。
-func BuildMultimodalContent(prompt string, messages []map[string]interface{}, opts MultimodalOptions) ([]map[string]interface{}, error) {
+func BuildMultimodalContent(prompt string, messages []map[string]interface{}) ([]map[string]interface{}, error) {
 	var content []map[string]interface{}
 	if prompt != "" {
 		content = append(content, map[string]interface{}{
@@ -35,12 +29,6 @@ func BuildMultimodalContent(prompt string, messages []map[string]interface{}, op
 
 	for _, msg := range messages {
 		content = appendSensorContent(content, msg)
-		if opts.IncludePartition {
-			content = appendPartitionInfo(content, msg)
-		}
-		if opts.IncludeClient {
-			content = appendClientInfo(content, msg)
-		}
 	}
 
 	return content, nil
@@ -48,6 +36,18 @@ func BuildMultimodalContent(prompt string, messages []map[string]interface{}, op
 
 // appendSensorContent adds sensor readings and multimodal payloads.
 func appendSensorContent(content []map[string]interface{}, msg map[string]interface{}) []map[string]interface{} {
+	if pid, ok := msg["partition_id"]; ok && pid != "" {
+		content = append(content, map[string]interface{}{
+			"type": "text",
+			"text": fmt.Sprintf("分区ID：%v", pid),
+		})
+	}
+	if pname, ok := msg["partition_name"]; ok && pname != "" {
+		content = append(content, map[string]interface{}{
+			"type": "text",
+			"text": fmt.Sprintf("分区名称：%v", pname),
+		})
+	}
 	if name, ok := msg["name"]; ok && name != "" {
 		content = append(content, map[string]interface{}{
 			"type": "text",
@@ -64,6 +64,13 @@ func appendSensorContent(content []map[string]interface{}, msg map[string]interf
 		content = append(content, map[string]interface{}{
 			"type": "text",
 			"text": fmt.Sprintf("单位：%v", unit),
+		})
+	}
+	// 保留时间戳，便于近时段判断
+	if t, ok := msg["time"]; ok && t != nil && fmt.Sprint(t) != "" {
+		content = append(content, map[string]interface{}{
+			"type": "text",
+			"text": fmt.Sprintf("时间：%v", t),
 		})
 	}
 
@@ -107,34 +114,6 @@ func appendSensorContent(content []map[string]interface{}, msg map[string]interf
 		}
 	}
 
-	return content
-}
-
-// appendPartitionInfo includes partition identifiers when present.
-func appendPartitionInfo(content []map[string]interface{}, msg map[string]interface{}) []map[string]interface{} {
-	if pid, ok := msg["partition_id"]; ok && pid != "" {
-		content = append(content, map[string]interface{}{
-			"type": "text",
-			"text": fmt.Sprintf("分区ID：%v", pid),
-		})
-	}
-	if pname, ok := msg["partition_name"]; ok && pname != "" {
-		content = append(content, map[string]interface{}{
-			"type": "text",
-			"text": fmt.Sprintf("分区名称：%v", pname),
-		})
-	}
-	return content
-}
-
-// appendClientInfo includes clientId when present.
-func appendClientInfo(content []map[string]interface{}, msg map[string]interface{}) []map[string]interface{} {
-	if cid, ok := msg["clientId"]; ok && cid != "" {
-		content = append(content, map[string]interface{}{
-			"type": "text",
-			"text": fmt.Sprintf("clientId：%v", cid),
-		})
-	}
 	return content
 }
 

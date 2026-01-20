@@ -17,5 +17,12 @@
     },
     "prompt": {
         "path": "config/prompts/llm_commands.md"
+    },
+    "rag": {
+        "enabled": true,
+        "storePath": "config/knowledge/agri_knowledge.txt",
+        "topK": 3,
+        "ollamaEndpoint": "http://localhost:11434",
+        "ollamaModel": "nomic-embed-text"
     }
 }

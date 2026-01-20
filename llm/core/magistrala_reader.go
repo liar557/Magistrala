@@ -96,12 +96,9 @@ func FetchChannelMessages(baseURL string, messagePort int, domainId, channelId, 
 }
 
 // ToLLMMessages 将 Magistrala 消息转换为 LLM 侧消费的通用 map 列表。
-// 输入必须附带 mappingPath 以便后续基于本地映射文件补充分区元数据。
-// 行为：
-//  1. 将 MessagesResponse 中的每条消息展开为 map，预置分区占位字段。
-//  2. 调用 EnrichPartitionsFromRegistry 基于 mappingPath 为消息写入 partition_id/name。
-//
-// 返回：转换后的消息切片；resp 为空时返回空切片并记录日志。
+// 先展开原始消息并补充分区信息，再构造精简后的消息体：
+//   - 保留：partition_id/partition_name、name(或 subtopic 兜底)、value、unit、string_value、time
+//   - 去掉：channel、protocol、publisher、clientId 等与推理无关字段
 func ToLLMMessages(resp *MessagesResponse, domainID, channelID, mappingPath string) []map[string]interface{} {
 	var out []map[string]interface{}
 	if resp == nil {
@@ -109,29 +106,60 @@ func ToLLMMessages(resp *MessagesResponse, domainID, channelID, mappingPath stri
 		return out
 	}
 	log.Printf("[ToLLM] converting messages=%d", len(resp.Messages))
+
+	// 1) 先展开为 map，便于分区补全
+	rawMsgs := make([]map[string]interface{}, 0, len(resp.Messages))
 	for _, m := range resp.Messages {
-		item := map[string]interface{}{
+		rawMsgs = append(rawMsgs, map[string]interface{}{
 			"channel":   m.Channel,
 			"subtopic":  m.Subtopic,
 			"publisher": m.Publisher,
 			"protocol":  m.Protocol,
 			"time":      m.Time,
-
-			// 传感器基本字段
-			"name":  m.Name,
-			"unit":  m.Unit,
-			"value": m.ValueAny,
-
-			// 预留分区信息（由 EnrichPartitionsFromRegistry 基于 publisher 补全）
+			"name":      m.Name,
+			"unit":      m.Unit,
+			"value":     m.ValueAny,
+			// 预留分区字段
 			"partition_id":   "",
 			"partition_name": "",
-		}
-		out = append(out, item)
+		})
 	}
 
-	// 基于映射文件的 sensors，按域/通道过滤后，为消息补充分区
-	EnrichPartitionsFromRegistry(out, domainID, channelID, mappingPath)
-	log.Printf("[ToLLM] after enrich partitions, messages=%d", len(out))
+	// 2) 分区补全（基于 mappingPath）
+	EnrichPartitionsFromRegistry(rawMsgs, domainID, channelID, mappingPath)
+	log.Printf("[ToLLM] after enrich partitions, messages=%d", len(rawMsgs))
+
+	// 3) 瘦身：仅保留分区+传感器必要字段+时间
+	for _, msg := range rawMsgs {
+		slim := map[string]interface{}{}
+		if v := fmt.Sprint(msg["partition_id"]); v != "" {
+			slim["partition_id"] = v
+		}
+		if v := fmt.Sprint(msg["partition_name"]); v != "" {
+			slim["partition_name"] = v
+		}
+		// 传感器标识：优先 name，无则用 subtopic
+		if v := fmt.Sprint(msg["name"]); v != "" {
+			slim["name"] = v
+		} else if v := fmt.Sprint(msg["subtopic"]); v != "" {
+			slim["name"] = v
+		}
+		if v, ok := msg["value"]; ok {
+			slim["value"] = v
+		}
+		if v := fmt.Sprint(msg["unit"]); v != "" {
+			slim["unit"] = v
+		}
+		if v := fmt.Sprint(msg["string_value"]); v != "" {
+			slim["string_value"] = v
+		}
+		// 保留时间戳用于近时段判断
+		if v, ok := msg["time"]; ok {
+			slim["time"] = v
+		}
+
+		out = append(out, slim)
+	}
 
 	return out
 }

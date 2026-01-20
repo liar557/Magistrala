@@ -20,7 +20,7 @@ type result struct {
 
 // 兼容旧调用，不覆盖 prompt。
 func makeInfer(client llm.LLMClient) func([]map[string]interface{}) (string, error) {
-	return makeInferWithPrompt(client, "")
+	return makeInferWithPromptAndRetriever(client, "", nil)
 }
 
 // 对应旧的逻辑，直接调用设备去执行，已废弃
@@ -179,8 +179,27 @@ func PlanAndExecuteHandler(w http.ResponseWriter, r *http.Request, orch *core.Or
 // 使用真实推理：基于 llm.AnalyzeRegionCommands 和配置创建的 LLMClient。
 // 可传入 prompt 文本覆盖默认提示词。
 func makeInferWithPrompt(client llm.LLMClient, prompt string) func([]map[string]interface{}) (string, error) {
+	return makeInferWithPromptAndRetriever(client, prompt, nil)
+}
+
+// 可选 RAG：在 prompt 前附加检索到的上下文。
+func makeInferWithPromptAndRetriever(client llm.LLMClient, prompt string, retr *llm.Retriever) func([]map[string]interface{}) (string, error) {
 	return func(messages []map[string]interface{}) (string, error) {
-		return llm.AnalyzeRegionCommandsWithPrompt(client, messages, prompt)
+		fullPrompt := prompt
+		if retr != nil {
+			ctxs := retr.Retrieve(messages)
+			if len(ctxs) > 0 {
+				var sb strings.Builder
+				sb.WriteString(prompt)
+				if prompt != "" {
+					sb.WriteString("\n\n")
+				}
+				sb.WriteString("参考资料：\n")
+				sb.WriteString(strings.Join(ctxs, "\n---\n"))
+				fullPrompt = sb.String()
+			}
+		}
+		return llm.AnalyzeRegionCommandsWithPrompt(client, messages, fullPrompt)
 	}
 }
 
@@ -208,6 +227,13 @@ func NewControlAdapterFromConfig() (*core.ControlAdapter, error) {
 		Prompt struct {
 			Path string `json:"path"`
 		} `json:"prompt"`
+		RAG struct {
+			Enabled        bool   `json:"enabled"`
+			StorePath      string `json:"storePath"`
+			TopK           int    `json:"topK"`
+			OllamaEndpoint string `json:"ollamaEndpoint"`
+			OllamaModel    string `json:"ollamaModel"`
+		} `json:"rag"`
 		ControlService struct {
 			BaseURL string `json:"baseUrl"`
 		} `json:"controlService"`
@@ -278,6 +304,14 @@ func NewControlAdapterFromConfig() (*core.ControlAdapter, error) {
 		}
 	}
 
+	retriever := llm.NewRetriever(llm.RAGConfig{
+		Enabled:        raw.RAG.Enabled,
+		StorePath:      raw.RAG.StorePath,
+		TopK:           raw.RAG.TopK,
+		OllamaEndpoint: raw.RAG.OllamaEndpoint,
+		OllamaModel:    raw.RAG.OllamaModel,
+	})
+
 	// 构造客户端与适配器
 	client := &llm.OllamaClient{Endpoint: raw.LLM.Endpoint, Model: raw.LLM.Model}
 	adapter := &core.ControlAdapter{
@@ -289,7 +323,7 @@ func NewControlAdapterFromConfig() (*core.ControlAdapter, error) {
 		MappingPath: raw.Mapping.Path,
 		ControlBase: raw.ControlService.BaseURL,
 	}
-	adapter.Infer = makeInferWithPrompt(client, promptSection)
+	adapter.Infer = makeInferWithPromptAndRetriever(client, promptSection, retriever)
 	return adapter, nil
 }
 
