@@ -52,14 +52,13 @@ llm/
 
 ## 4. 整体架构概览
 ```
-           Sensors / Magistrala
+              Magistrala
                     │ 拉取消息
                     ▼
-      分区补全 + 字段瘦身 (core.ToLLMMessages)
+      分区补全 + 字段精简 (core.ToLLMMessages)
                     │
                     ▼
         RAG 检索 (Ollama Embedding, 可选)
-      （检索知识库段落，拼到 Prompt）
                     │
                     ▼
         Prompt 选择 (MD 段 region_commands)
